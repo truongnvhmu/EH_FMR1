@@ -1,0 +1,18 @@
+{
+  "ExpansionHunterScatter.sample_ids": [
+    "2251821", 
+    "3073756", 
+    "1339860",
+"1724174",
+"2733650"
+  ],
+  "ExpansionHunterScatter.reference_fasta": "gs://genomics-public-data/references/hg38/v0/Homosapiens_assembly38.fasta",
+  "ExpansionHunterScatter.reference_fasta_index": "gs://genomics-public-data/references/hg38/v0/Homosapiens_assembly38.fasta.fai",
+  "ExpansionHunterScatter.variant_catalog_json": "fmr1-catalog-json-hg38",
+  
+  "ExpansionHunterScatter.expansion_hunter_docker": "gcr.io/broad-dsp-gadd-production/expansionhunter:v5.0.0",
+  "ExpansionHunterScatter.python_docker": "python:3.9-slim",
+  
+  "ExpansionHunterScatter.generate_vcf": true,
+  "ExpansionHunterScatter.generate_realigned_bam": false
+}
