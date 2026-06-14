@@ -15,12 +15,12 @@ struct FilenamePostfixes {
 workflow ExpansionHunter {
 
     input {
-        File bam_or_cram
-        File? bam_or_cram_index
+        # ĐỔI Ở ĐÂY: Thay thế File bằng String sample_id để phù hợp với Sandbox của AoU 2.0
+        String sample_id
+        
         File reference_fasta
         File? reference_fasta_index
         Array[File] split_variant_catalogs
-        String sample_id
         Boolean? generate_realigned_bam
         Boolean? generate_vcf
         Boolean? seeking_analysis_mode
@@ -34,15 +34,13 @@ workflow ExpansionHunter {
 
     parameter_meta {
         ped_file: "This file is used to extract the sex of the bam_or_cram file."
-        sample_id: "The ped_file needs to be provided as well to determine sample sex. The ID must match the sample ID given in the second column (`Individual ID` column) of the given PED file. This ID will also be used as an output prefix."
+        sample_id: "The AoU person_id used as sample identifier and prefix."
     }
 
-    Boolean is_bam = basename(bam_or_cram, ".bam") + ".bam" == basename(bam_or_cram)
-    File bam_or_cram_index_ =
-        if defined(bam_or_cram_index) then
-            select_first([bam_or_cram_index])
-        else
-            bam_or_cram + if is_bam then ".bai" else ".crai"
+    # CƠ CHẾ GIẢI MÃ ĐƯỜNG DẪN ẨN CỦA AOU 2.0:
+    # Tự động dựng lại path từ biến môi trường tổng $WORKBENCH_WGS_DATA_DIR
+    File bam_or_cram = "$WORKBENCH_WGS_DATA_DIR/" + sample_id + ".cram"
+    File bam_or_cram_index_ = "$WORKBENCH_WGS_DATA_DIR/" + sample_id + ".cram.crai"
 
     File reference_fasta_index_ = select_first([
         reference_fasta_index,
@@ -270,7 +268,7 @@ task ConcatEHOutputs {
 
     runtime {
         docker: expansion_hunter_docker
-        cpu: select_first([runtime_attr.cpu_cores, runtime_default.cpu_cores])
+        cpu: select_first([runtime_attr.cpu_cores, runtime_default.runtime_cores])
         memory: select_first([runtime_attr.mem_gb, runtime_default.mem_gb]) + " GiB"
         disks: "local-disk " + select_first([runtime_attr.disk_gb, runtime_default.disk_gb]) + " SSD"
         bootDiskSizeGb: select_first([runtime_attr.boot_disk_gb, runtime_default.boot_disk_gb])
