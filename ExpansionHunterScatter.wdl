@@ -1,15 +1,12 @@
 version 1.0
 
 import "Structs.wdl"
-# Lưu ý: Đảm bảo bạn có file ExpansionHunter.wdl nằm cùng repo để import
 import "ExpansionHunter.wdl" as ExpansionHunter
 
 workflow ExpansionHunterScatter {
 
     input {
-        # ĐỔI Ở ĐÂY: Không nhận Array[File] nữa, chỉ nhận danh sách mã số 7 chữ số (person_id)
         Array[String] sample_ids
-        
         File? ped_file
         File reference_fasta
         File? reference_fasta_index
@@ -42,25 +39,19 @@ workflow ExpansionHunterScatter {
             runtime_override = runtime_split_var_catalog
     }
 
-    # SỬA KHỐI SCATTER: Chạy vòng lặp trực tiếp trên danh sách mã mẫu (sample_ids)
     scatter (sample_id in sample_ids) {
-        
-        # ĐỈNH CAO BẢO MẬT AOU 2.0: Tự động khôi phục đường dẫn ảo từ biến môi trường của hệ thống
-        # Hệ thống Verily map dữ liệu WGS vào thư mục gốc $WORKBENCH_WGS_DATA_DIR
-        File bam_or_cram_ = "$WORKBENCH_WGS_DATA_DIR/" + sample_id + ".cram"
-        File bam_or_cram_index_ = "$WORKBENCH_WGS_DATA_DIR/" + sample_id + ".cram.crai"
         
         File reference_fasta_index_ = select_first([
             reference_fasta_index, reference_fasta + ".fai"])
 
+        # KHỐI CALL ĐÃ ĐƯỢC TINH CHỈNH: Gọn gàng, chỉ truyền sample_id 
+        # Không truyền bam_or_cram và bam_or_cram_index sang nữa để tránh xung đột
         call ExpansionHunter.ExpansionHunter  {
             input:
-                bam_or_cram = bam_or_cram_,
-                bam_or_cram_index = bam_or_cram_index_,
+                sample_id = sample_id,
                 reference_fasta = reference_fasta,
                 reference_fasta_index = reference_fasta_index_,
                 split_variant_catalogs = SplitVariantCatalog.catalogs_json,
-                sample_id = sample_id,
                 ped_file = ped_file,
                 generate_realigned_bam = generate_realigned_bam,
                 generate_vcf = generate_vcf,
