@@ -1,14 +1,15 @@
 version 1.0
 
 import "Structs.wdl"
+# Lưu ý: Đảm bảo bạn có file ExpansionHunter.wdl nằm cùng repo để import
 import "ExpansionHunter.wdl" as ExpansionHunter
 
 workflow ExpansionHunterScatter {
 
     input {
-        Array[File] bams_or_crams
-        Array[File]? bams_or_crams_indexes
+        # ĐỔI Ở ĐÂY: Không nhận Array[File] nữa, chỉ nhận danh sách mã số 7 chữ số (person_id)
         Array[String] sample_ids
+        
         File? ped_file
         File reference_fasta
         File? reference_fasta_index
@@ -27,7 +28,7 @@ workflow ExpansionHunterScatter {
 
     parameter_meta {
         ped_file: "This file is used to extract the sex of the BAM/CRAM files."
-        sample_ids: "One ID per sample, in the same order as the files in bams_or_crams. These IDs must match the ID given in the second column (`Individual ID` column) of the given PED file. These IDs will also be used as an output prefix."
+        sample_ids: "One ID per sample, corresponding to AoU person_id."
     }
 
     String variant_catalog_batch_size_ = select_first([variant_catalog_batch_size, 1000])
@@ -41,19 +42,16 @@ workflow ExpansionHunterScatter {
             runtime_override = runtime_split_var_catalog
     }
 
-    scatter (i in range(length(bams_or_crams))) {
-        File bam_or_cram_ = bams_or_crams[i]
-        Boolean is_bam =
-            basename(bam_or_cram_, ".bam") + ".bam" == basename(bam_or_cram_)
-        File bam_or_cram_index_ =
-            if defined(bams_or_crams_indexes) then
-                select_first([bams_or_crams_indexes])[i]
-            else
-                bam_or_cram_ + if is_bam then ".bai" else ".crai"
+    # SỬA KHỐI SCATTER: Chạy vòng lặp trực tiếp trên danh sách mã mẫu (sample_ids)
+    scatter (sample_id in sample_ids) {
+        
+        # ĐỈNH CAO BẢO MẬT AOU 2.0: Tự động khôi phục đường dẫn ảo từ biến môi trường của hệ thống
+        # Hệ thống Verily map dữ liệu WGS vào thư mục gốc $WORKBENCH_WGS_DATA_DIR
+        File bam_or_cram_ = "$WORKBENCH_WGS_DATA_DIR/" + sample_id + ".cram"
+        File bam_or_cram_index_ = "$WORKBENCH_WGS_DATA_DIR/" + sample_id + ".cram.crai"
+        
         File reference_fasta_index_ = select_first([
             reference_fasta_index, reference_fasta + ".fai"])
-
-        String sample_id = sample_ids[i]
 
         call ExpansionHunter.ExpansionHunter  {
             input:
